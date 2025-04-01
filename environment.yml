@@ -1,0 +1,11 @@
+name: voice-to-text
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies: 
+  - python=3.10
+  - pytorch
+  - torchaudio
+  - lightning
+  - jupyterlab
