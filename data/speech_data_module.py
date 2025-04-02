@@ -16,20 +16,19 @@ NUM_WORKERS = 0
 DATASET_NAME = "fluent"
 DATASET_CLASSES = {
 	"fluent": {
-		"class_name": FluentSpeechCommands, 
+		"class": FluentSpeechCommands, 
 		"train_subset": "train", 
 		"val_subset": "valid", 
 		"test_subset": "test"
 	},
 	"libri": {
-		"class_name": LIBRISPEECH, 
+		"class": LIBRISPEECH, 
 		"train_subset": "train-clean-100", 
 		"val_subset": "dev-clean", 
 		"test_subset": "test-clean"
 	},
 }
 DATASET_DIR = "/data"
-
 
 
 class SpeechDataModule(pl.LightningDataModule):
@@ -47,10 +46,10 @@ class SpeechDataModule(pl.LightningDataModule):
 		if self.dataset_name not in DATASET_CLASSES:
 			raise ValueError(f"Unsupported dataset: {self.dataset_name}")
 
-		self.dataset_class = DATASET_CLASSES[self.dataset_name["class_name"]]
-		self.dataset_train_subset = DATASET_CLASSES[self.dataset_name["train_subset"]]
-		self.dataset_val_subset = DATASET_CLASSES[self.dataset_name["val_subset"]]
-		self.dataset_test_subset = DATASET_CLASSES[self.dataset_name["test_subset"]]
+		self.dataset_class = DATASET_CLASSES[self.dataset_name]["class"]
+		self.dataset_train_subset = DATASET_CLASSES[self.dataset_name]["train_subset"]
+		self.dataset_val_subset = DATASET_CLASSES[self.dataset_name]["val_subset"]
+		self.dataset_test_subset = DATASET_CLASSES[self.dataset_name]["test_subset"]
 
 	@staticmethod
 	def add_to_argparse(parser):
@@ -71,19 +70,15 @@ class SpeechDataModule(pl.LightningDataModule):
 		    ),
 		)
 
-	def prepare_data(self):
-		os.makedirs(self.dataset_dir, exist_ok=True)
-		self.dataset_class(self.dataset_dir, download=True)
-
 	def setup(self, stage=None):
 		if self.dataset_name == "fluent":
-			self.train_dataset = self.dataset_class(self.data_dir, subset=self.dataset_train_subset)
-			self.val_dataset = self.dataset_class(self.data_dir, subset=self.dataset_val_subset)
-			self.test_dataset = self.dataset_class(self.data_dir, subset=self.dataset_test_subset)
+			self.train_dataset = self.dataset_class(self.dataset_dir, subset=self.dataset_train_subset)
+			self.val_dataset = self.dataset_class(self.dataset_dir, subset=self.dataset_val_subset)
+			self.test_dataset = self.dataset_class(self.dataset_dir, subset=self.dataset_test_subset)
 		elif self.dataset_name == "libri":
-			self.train_dataset = self.dataset_class(self.data_dir, url=self.dataset_train_subset)
-			self.val_dataset = self.dataset_class(self.data_dir, url=self.dataset_val_subset)
-			self.test_dataset = self.dataset_class(self.data_dir, url=self.dataset_test_subset)
+			self.train_dataset = self.dataset_class(self.dataset_dir, url=self.dataset_train_subset, download=True)
+			self.val_dataset = self.dataset_class(self.dataset_dir, url=self.dataset_val_subset, download=True)
+			self.test_dataset = self.dataset_class(self.dataset_dir, url=self.dataset_test_subset, download=True)
 
 	def train_dataloader(self):
 		return DataLoader(
@@ -92,7 +87,6 @@ class SpeechDataModule(pl.LightningDataModule):
 			shuffle=True, 
 			num_workers=self.num_workers
 		)
-
 
 	def val_dataloader(self):
 		return DataLoader(
@@ -112,4 +106,8 @@ class SpeechDataModule(pl.LightningDataModule):
 
 
 if __name__ == "__main__":
-	parser = 
+	parser = argparse.ArgumentParser()
+	SpeechDataModule.add_to_argparse(parser)
+	args = parser.parse_args()
+	dm = SpeechDataModule(args)
+	dm.setup()
